@@ -4,7 +4,7 @@ import { asyncWrapper } from "../helpers/asyncWrapper.js"
 import { ApiResponse } from "../helpers/ApiResponse.js"
 
 
-import { userRegisterService, userLoginService, userLogoutService, GenerateVerificationEmailService, userEmailVerificationService, refreshAccessTokenService } from "../services/userServices.js"
+import { userRegisterService, userLoginService, userLogoutService, GenerateVerificationEmailService, userEmailVerificationService, refreshAccessTokenService ,userUpdateProfileService , verifyNewEmailService ,forgotPasswordService, resetPasswordService} from "../services/userServices.js"
 import { userModel } from "../models/userModel.js"
 import { ApiError } from "../helpers/ApiErrors.js"
 
@@ -14,7 +14,7 @@ const registerUser = asyncWrapper(async (req, res) => {
     const { username, email, password } = req.body
 
     const user = await userRegisterService({ username, email, password })
-    // await  GenerateVerificationEmailService(user)
+    await  GenerateVerificationEmailService(user)
 
 
     return res.status(201).json(
@@ -31,14 +31,11 @@ const registerUser = asyncWrapper(async (req, res) => {
 const verifyEmail = asyncWrapper(async (req, res) => {
     const receivedToken = req.params.token
     if (!receivedToken) {
-        throw new ApiError()
+        throw new ApiError(400, "Token is missing")
     }
     const hashedReceivedToken = crypto.createHash("sha256").update(receivedToken).digest("hex")
     await userEmailVerificationService(hashedReceivedToken)
-
-
-
-    return res.json(new ApiResponse(200, "Email Verification successfull"))
+    return res.json(new ApiResponse(200, "Email verified successfully"))
 })
 
 
@@ -55,7 +52,7 @@ const loginUser = asyncWrapper(async (req, res) => {
 
     // in your login controller
     const options = {
-        httpOnly: true,   // 👈 back to true
+        httpOnly: true,   //  back to true
         secure: false,
         sameSite: "lax",
         path: "/",
@@ -125,6 +122,74 @@ const refreshAccessToken = asyncWrapper(async (req, res) => {
 })
 
 
+const updateUserProfile = asyncWrapper(async (req, res) => {
+    const { username, email, currentPassword, newPassword } = req.body
+    const userId = req.user._id
+ 
+    const { updatedUser, emailVerificationPending } = await userUpdateProfileService({
+        userId,
+        username,
+        email,
+        currentPassword,
+        newPassword,
+    })
+ 
+    const message = emailVerificationPending
+        ? 'Profile updated. Please check your new email address to confirm the change.'
+        : 'Profile updated successfully'
+ 
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { user: updatedUser, emailVerificationPending }, message))
+})
 
 
-export { registerUser, loginUser, getCurrentUser, logoutUser, verifyEmail, restrictedRoute, refreshAccessToken }
+
+const verifyNewEmail = asyncWrapper(async (req, res) => {
+    const receivedToken = req.params.token
+    if (!receivedToken) {
+        throw new ApiError(400, 'Token is missing')
+    }
+ 
+    const hashedReceivedToken = crypto
+        .createHash('sha256')
+        .update(receivedToken)
+        .digest('hex')
+ 
+    await verifyNewEmailService(hashedReceivedToken)
+ 
+    return res.json(new ApiResponse(200, {}, 'Email address updated successfully'))
+})
+
+const forgotPassword = asyncWrapper(async (req, res) => {
+    const { email } = req.body
+ 
+    await forgotPasswordService({ email })
+ 
+    // Always return 200 with the same message — prevents email enumeration
+    return res
+        .status(200)
+        .json(new ApiResponse(
+            200,
+            {},
+            'If an account with that email exists, a password reset link has been sent.'
+        ))
+})
+ 
+// POST /api/user/reset-password/:token
+const resetPassword = asyncWrapper(async (req, res) => {
+    const { token } = req.params
+    const { newPassword } = req.body
+ 
+    if (!token) {
+        throw new ApiError(400, 'Reset token is missing')
+    }
+ 
+    await resetPasswordService({ token, newPassword })
+ 
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, 'Password reset successfully. You can now log in with your new password.'))
+})
+
+export { registerUser, loginUser, getCurrentUser, logoutUser, verifyEmail, restrictedRoute, refreshAccessToken , updateUserProfile , verifyNewEmail , forgotPassword , resetPassword}

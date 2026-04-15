@@ -1,15 +1,16 @@
 import React from 'react'
-import { Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthContext } from '../context/AuthContext';
+import VerificationOverlay from "../components/Register/VerificationSentOverlay"  // 👈 import
 
 const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({ username: "", email: "", password: "" });
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(false)
+  const [overlayMessage, setOverlayMessage] = useState(null) // 👈 replaces success boolean
 
   const { registerUser } = useAuthContext()
   const navigate = useNavigate();
@@ -31,13 +32,11 @@ const Register = () => {
     setError(null)
 
     try {
-      await registerUser(formData)
-      setSuccess(true)
-      setTimeout(() => navigate('/login'), 1500)
+      const response = await registerUser(formData)
+      // Show overlay with the exact message from backend
+      setOverlayMessage(response?.data?.message || "User registered successfully. Please check your inbox for email verification.")
     } catch (err) {
       const responseData = err.response?.data
-
-      // Show specific validation messages if available, otherwise general message
       if (responseData?.details?.length > 0) {
         setError(responseData.details)
       } else {
@@ -45,12 +44,19 @@ const Register = () => {
       }
     } finally {
       setIsSubmitting(false)
-      // form data intentionally NOT reset — user should not retype everything
     }
   };
 
   return (
     <div className="min-h-screen w-full bg-[#FAF9F3] flex flex-col items-center justify-center px-4 py-12">
+
+      {/* Overlay — mounts on top when registration succeeds */}
+      {overlayMessage && (
+        <VerificationOverlay
+          message={overlayMessage}
+          onContinue={() => navigate('/login')}
+        />
+      )}
 
       <Link
         to="/"
@@ -72,15 +78,7 @@ const Register = () => {
       <h1 className="text-3xl font-bold text-[#1a1a1a] mb-2">Create your account</h1>
       <p className="text-sm text-[#888] mb-6">Sign up to save and revisit your generated Halal recipes anytime.</p>
 
-      {/* Success banner */}
-      {success && (
-        <div className="w-full max-w-md flex items-center gap-2.5 bg-[#F0F7EA] border border-[#2D5016]/30 rounded-xl px-5 py-3 mb-4">
-          <CheckCircle size={16} strokeWidth={2} color="#2D5016" className="shrink-0" />
-          <p className="text-sm text-[#2D5016] font-medium">Account created! Redirecting to login...</p>
-        </div>
-      )}
-
-      {/* Error banner — handles both single string and array of validation messages */}
+      {/* Error banner */}
       {error && (
         <div className="w-full max-w-md flex items-start gap-2.5 bg-[#FFF8F5] border border-[#C8572B]/30 rounded-xl px-5 py-3 mb-4">
           <AlertCircle size={16} strokeWidth={2} color="#C8572B" className="shrink-0 mt-0.5" />
@@ -97,7 +95,6 @@ const Register = () => {
 
       <div className="w-full max-w-md bg-white rounded-2xl shadow-md border border-[#E8E2D9] px-8 py-8 flex flex-col gap-5">
 
-        {/* Username */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-[#333]">Username</label>
           <input
@@ -106,12 +103,11 @@ const Register = () => {
             value={formData.username}
             onChange={handleChange}
             placeholder="johndoe"
-            disabled={isSubmitting || success}
+            disabled={isSubmitting}
             className="w-full border border-[#E0DAD0] rounded-lg px-4 py-2.5 text-sm text-[#333] placeholder-[#bbb] bg-[#FAFAF8] focus:outline-none focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] transition-all duration-200 disabled:opacity-50"
           />
         </div>
 
-        {/* Email */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-[#333]">Email Address</label>
           <input
@@ -120,12 +116,11 @@ const Register = () => {
             value={formData.email}
             onChange={handleChange}
             placeholder="name@example.com"
-            disabled={isSubmitting || success}
+            disabled={isSubmitting}
             className="w-full border border-[#E0DAD0] rounded-lg px-4 py-2.5 text-sm text-[#333] placeholder-[#bbb] bg-[#FAFAF8] focus:outline-none focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] transition-all duration-200 disabled:opacity-50"
           />
         </div>
 
-        {/* Password */}
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-semibold text-[#333]">Password</label>
           <div className="relative">
@@ -135,7 +130,7 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="••••••••"
-              disabled={isSubmitting || success}
+              disabled={isSubmitting}
               className="w-full border border-[#E0DAD0] rounded-lg px-4 pr-11 py-2.5 text-sm text-[#333] placeholder-[#bbb] bg-[#FAFAF8] focus:outline-none focus:ring-2 focus:ring-[#2D5016]/30 focus:border-[#2D5016] transition-all duration-200 disabled:opacity-50"
             />
             <button
@@ -148,10 +143,9 @@ const Register = () => {
           </div>
         </div>
 
-        {/* Submit */}
         <button
           onClick={registerHandler}
-          disabled={isSubmitting || success}
+          disabled={isSubmitting}
           className="w-full flex items-center justify-center gap-2 bg-[#2D5016] hover:bg-[#3a6b1e] text-white text-sm font-semibold py-3 rounded-lg transition-colors duration-200 mt-1 disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {isSubmitting ? (
@@ -161,8 +155,6 @@ const Register = () => {
               </svg>
               Creating Account...
             </>
-          ) : success ? (
-            "Account Created!"
           ) : (
             <>
               Create Account

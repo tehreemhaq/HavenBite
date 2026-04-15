@@ -42,7 +42,19 @@ const userSchema = new mongoose.Schema(
         emailVerificationExpiry :{
             type : Date,
             default : undefined
-        }
+        },
+        pendingEmail: {               
+            type: String,
+            default: undefined
+        },
+        passwordResetToken: {
+            type: String,
+            default: undefined
+        },
+        passwordResetExpiry: {
+            type: Date,
+            default: undefined
+        },
     },
     {
         timestamps: true
@@ -91,7 +103,7 @@ userSchema.methods.generateAccessToken = function () {
         },
         process.env.ACCESS_SECRET_KEY,
         {
-            expiresIn: "1d"           //process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn:process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }

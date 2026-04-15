@@ -6,7 +6,7 @@ const instance = axios.create({
 });
 
 // URLs that should never trigger the refresh retry logic
-const SKIP_REFRESH_URLS = ["/user/refresh-token", "/user/me", "/user/login", "/user/register"]
+const SKIP_REFRESH_URLS = ["/user/refresh-token", "/user/me", "/user/login", "/user/register" , "/user/update-profile",]
 
 instance.interceptors.response.use(
   (response) => response,

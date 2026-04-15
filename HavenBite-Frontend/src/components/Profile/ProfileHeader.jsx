@@ -1,6 +1,7 @@
 import { Mail, Pencil, LogOut } from "lucide-react";
 import { useAuthContext } from "../../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate , Link } from "react-router-dom";
+
 
 export default function ProfileHeader() {
   const { loggedInUser, logout } = useAuthContext();
@@ -40,10 +41,10 @@ export default function ProfileHeader() {
 
       {/* Action buttons — Edit Profile + Logout side by side */}
       <div className="flex items-center gap-3">
-        {/* <button className="inline-flex items-center gap-2 bg-[#2D5016] hover:bg-[#3a6b1e] text-white text-xs font-semibold px-5 py-2.5 rounded-full transition-colors duration-200">
+        <button className="inline-flex items-center gap-2 bg-[#2D5016] hover:bg-[#3a6b1e] text-white text-xs font-semibold px-5 py-2.5 rounded-full transition-colors duration-200">
           <Pencil size={12} strokeWidth={2.5} />
-          Edit Profile
-        </button> */}
+         <Link to='/profile/edit'>Edit Profile</Link>
+        </button>
 
         <button
           onClick={handleLogout}
