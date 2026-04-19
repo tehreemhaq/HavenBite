@@ -5,6 +5,7 @@ import { useRecipeContext } from "../context/RecipeContext";
 import ProfileHeader from "../components/Profile/ProfileHeader";
 import StatsBar from "../components/Profile/StatsBar";
 import SavedRecipeGrid from "../components/Profile/SavedRecipeGrid";
+import DeleteAccountButton from "../components/Profile/DeleteAccountButton";
 
 export default function ProfilePage() {
   const { loggedInUser, isAuthLoading } = useAuthContext();
@@ -92,7 +93,9 @@ export default function ProfilePage() {
             onView={handleViewRecipe}
             onUnsave={handleUnsave}
           />
+         
         )}
+         <DeleteAccountButton />
 
       </div>
     </div>

@@ -4,7 +4,7 @@ import { asyncWrapper } from "../helpers/asyncWrapper.js"
 import { ApiResponse } from "../helpers/ApiResponse.js"
 
 
-import { userRegisterService, userLoginService, userLogoutService, GenerateVerificationEmailService, userEmailVerificationService, refreshAccessTokenService ,userUpdateProfileService , verifyNewEmailService ,forgotPasswordService, resetPasswordService} from "../services/userServices.js"
+import { userRegisterService, userLoginService, userLogoutService, GenerateVerificationEmailService, userEmailVerificationService, refreshAccessTokenService ,userUpdateProfileService , verifyNewEmailService ,forgotPasswordService, resetPasswordService, deleteAccountService} from "../services/userServices.js"
 import { userModel } from "../models/userModel.js"
 import { ApiError } from "../helpers/ApiErrors.js"
 
@@ -175,21 +175,40 @@ const forgotPassword = asyncWrapper(async (req, res) => {
             'If an account with that email exists, a password reset link has been sent.'
         ))
 })
- 
+
 // POST /api/user/reset-password/:token
 const resetPassword = asyncWrapper(async (req, res) => {
     const { token } = req.params
     const { newPassword } = req.body
- 
+
     if (!token) {
         throw new ApiError(400, 'Reset token is missing')
     }
- 
+
     await resetPasswordService({ token, newPassword })
- 
+
     return res
         .status(200)
         .json(new ApiResponse(200, {}, 'Password reset successfully. You can now log in with your new password.'))
 })
 
-export { registerUser, loginUser, getCurrentUser, logoutUser, verifyEmail, restrictedRoute, refreshAccessToken , updateUserProfile , verifyNewEmail , forgotPassword , resetPassword}
+const deleteAccount = asyncWrapper(async (req, res) => {
+    const userId = req.user._id
+
+    await deleteAccountService({ userId })
+
+    // Same cookie options used in login — must match for clearing to work
+    const cookieOptions = {
+        httpOnly: true,
+        secure: false,
+        sameSite: 'lax',
+        path: '/',
+    }
+
+    return res
+        .clearCookie('AccessToken', cookieOptions)
+        .clearCookie('RefreshToken', cookieOptions)
+        .status(200)
+        .json(new ApiResponse(200, {}, 'Account deleted successfully'))
+})
+export { registerUser, loginUser, getCurrentUser, logoutUser, verifyEmail, restrictedRoute, refreshAccessToken , updateUserProfile , verifyNewEmail , forgotPassword , resetPassword , deleteAccount}

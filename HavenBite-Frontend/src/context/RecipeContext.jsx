@@ -1,9 +1,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../api/axios";
 
-// to do success and failure messages
-// refreshing access token
-// final touches
 export const RecipeContext = createContext();
 export const useRecipeContext = () => useContext(RecipeContext);
 
@@ -14,12 +12,14 @@ export const RecipeProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isNutritionLoading, setIsNutritionLoading] = useState(false);
   const [nutritionError, setNutritionError] = useState(false);
-  const [isFromSaved, setIsFromSaved] = useState(false); 
+  const [isFromSaved, setIsFromSaved] = useState(false);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!recipeResult || !halalVerificationResult) return;
-    if (isFromSaved) {          
-      setIsFromSaved(false);    
+    if (isFromSaved) {
+      setIsFromSaved(false);
       return;
     }
 
@@ -83,6 +83,17 @@ export const RecipeProvider = ({ children }) => {
       setRecipeResult(recipe);
       setHalalVerificationResult(halalVerification);
     } catch (error) {
+      const status = error?.response?.status
+
+      // No status means the server is completely unreachable (network down)
+      // 5xx means server or AI service failed
+      if (!status || status >= 500) {
+        const isAIError = error?.response?.data?.isAIError ?? false
+        navigate("/error", { state: { reason: isAIError ? "ai" : "server" } })
+        return
+      }
+
+      // 4xx errors — re-throw so the calling component can show them in the UI
       console.log("error in recipe generation:", error.response?.data);
       throw error;
     } finally {
@@ -90,9 +101,8 @@ export const RecipeProvider = ({ children }) => {
     }
   };
 
-  //  Loads a saved recipe from DB into context states — reuses RecipeResult UI
   const loadSavedRecipe = (savedRecipe) => {
-    setIsFromSaved(true) // must be set BEFORE state updates to block useEffect
+    setIsFromSaved(true); // must be set BEFORE state updates to block useEffect
 
     setRecipeResult({
       recipeName:   savedRecipe.recipeName,
@@ -100,16 +110,16 @@ export const RecipeProvider = ({ children }) => {
       servings:     savedRecipe.servings,
       ingredients:  savedRecipe.ingredients,
       instructions: savedRecipe.instructions,
-    })
+    });
 
     setHalalVerificationResult({
       isFullyHalal: savedRecipe.halalVerification.isFullyHalal,
       ingredients:  savedRecipe.halalVerification.ingredients,
-    })
+    });
 
     // Use saved nutrition snapshot — may be null if API failed at save time
-    setNutritionResult(savedRecipe.nutrition ?? null)
-  }
+    setNutritionResult(savedRecipe.nutrition ?? null);
+  };
 
   const saveRecipe = async () => {
     try {
@@ -139,7 +149,7 @@ export const RecipeProvider = ({ children }) => {
   const getSavedRecipes = async () => {
     try {
       const response = await axios.get("/recipe/saved-recipe");
-      console.log("saved recipes raw:", response.data.data.savedRecipes)
+      console.log("saved recipes raw:", response.data.data.savedRecipes);
       return response.data.data;
     } catch (error) {
       console.log("get saved recipes error:", error.response?.data);
@@ -148,14 +158,14 @@ export const RecipeProvider = ({ children }) => {
   };
 
   const deleteSavedRecipe = async (recipeId) => {
-  try {
-    const response = await axios.delete(`/recipe/saved-recipe/${recipeId}`)
-    return response.data
-  } catch (error) {
-    console.log("delete saved recipe error:", error.response?.data)
-    throw error // re-throw so ProfilePage can rollback on failure
-  }
-}
+    try {
+      const response = await axios.delete(`/recipe/saved-recipe/${recipeId}`);
+      return response.data;
+    } catch (error) {
+      console.log("delete saved recipe error:", error.response?.data);
+      throw error; // re-throw so ProfilePage can rollback on failure
+    }
+  };
 
   const value = {
     recipeResult,
@@ -167,7 +177,7 @@ export const RecipeProvider = ({ children }) => {
     generateRecipe,
     saveRecipe,
     getSavedRecipes,
-    loadSavedRecipe, 
+    loadSavedRecipe,
     deleteSavedRecipe,
   };
 

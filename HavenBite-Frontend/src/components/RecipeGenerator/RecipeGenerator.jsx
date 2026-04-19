@@ -106,7 +106,7 @@ const RecipeGenerator = () => {
                 )}
               </button>
               <p className="text-[11px] text-[#bbb] italic">
-                Recipe generated and Halal-verified using AI
+                AI-generated recipe with Halal verification (Sunni school). AI may occasionally make mistakes — please verify when in doubt.
               </p>
             </div>
 

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 
 import { userModel } from "../models/userModel.js";
+import { savedRecipeModel } from "../models/savedRecipeModel.js";
 import { ApiError } from "../helpers/ApiErrors.js";
 import {
   generateRefreshAndAccessToken,
@@ -9,6 +10,7 @@ import {
 import { sendEmail } from "../helpers/emailSender.js";
 import{newEmailVerificationSender} from "../helpers/newEmailVerificationSender.js"
 import { resetPasswordEmailSender } from "../helpers/resetPasswordEmailSender.js";
+
 
 const userRegisterService = async ({ username, email, password }) => {
   const userExists = await userModel.findOne({
@@ -296,6 +298,19 @@ const resetPasswordService = async ({ token, newPassword }) => {
     await user.save()
 }
 
+const deleteAccountService = async ({ userId }) => {
+    const user = await userModel.findById(userId)
+    if (!user) {
+        throw new ApiError(404, 'User not found')
+    }
+
+    // Delete all saved recipes belonging to this user first
+    await savedRecipeModel.deleteMany({ user: userId })
+
+    // Delete the user
+    await userModel.findByIdAndDelete(userId)
+}
+
 export {
   userRegisterService,
   userLoginService,
@@ -306,5 +321,6 @@ export {
   userUpdateProfileService,
   verifyNewEmailService,
   forgotPasswordService,
-  resetPasswordService
+  resetPasswordService,
+  deleteAccountService,
 };
